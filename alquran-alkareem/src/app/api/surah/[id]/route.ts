@@ -1,7 +1,7 @@
  
 import fs from 'fs'
 import path from 'path'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 
 export   async function GET(req:NextRequest,
    { params }: { params: Promise<{ id?: string }> }

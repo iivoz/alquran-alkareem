@@ -98,8 +98,8 @@ export default function EnhancedQuranReader() {
       setCurrentAudio(audio);
       setIsPlaying(true);
       audio.onended = () => setIsPlaying(false);
-    } catch (error) {
-      throw new Error('s')
+    } catch  {
+      throw new Error('حصل خطأ')
     }
   };
 

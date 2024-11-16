@@ -33,7 +33,7 @@ export default function RootLayout({
         >
           <Github className="mr-2 h-4 w-4" />
           <a
-            href="https://github.com/your-username/jordan-national-team"
+            href="https://github.com/SaifSaidi/alquran-alkareem"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center"

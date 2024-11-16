@@ -1,4 +1,4 @@
-# قارئ القرآن الكريم 📖🕌
+# قارئ القرآن الكريم 📖
 
 <div dir="rtl" style="text-align:right">
 
