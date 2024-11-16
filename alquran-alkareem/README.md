@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# قارئ القرآن الكريم 📖🕌
 
-## Getting Started
+<div dir="rtl" style="text-align:right">
 
-First, run the development server:
+## نظرة عامة 🌟
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+قارئ القرآن الكريم هو تطبيق ويب مفتوح المصدر يهدف إلى توفير تجربة سلسة وغنية لقراءة القرآن الكريم والاستماع إليه. يتميز التطبيق بواجهة مستخدم عصرية وسهلة الاستخدام، مع مجموعة من الميزات المتقدمة لتعزيز تجربة التلاوة والتدبر.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## الميزات الرئيسية ✨
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- 📖 عرض النص القرآني الكامل مع التشكيل
+- 🎙️ الاستماع إلى التلاوات من مجموعة واسعة من القراء المشهورين
+- 🔍 خاصية البحث في الآيات
+- 🌙 وضع القراءة الليلي لراحة العين
+- 📱 تصميم متجاوب يعمل على جميع الأجهزة
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## التقنيات المستخدمة 💻
 
-## Learn More
+- [Next.js 15](https://nextjs.org/) - إطار عمل React للإنتاج
+- [React 19](https://reactjs.org/) - مكتبة JavaScript لبناء واجهات المستخدم
+- [TypeScript](https://www.typescriptlang.org/) - لغة برمجة قوية للتطوير بـ JavaScript
+- [Tailwind CSS](https://tailwindcss.com/) - إطار CSS للتصميم السريع
+- [Shadcn UI](https://ui.shadcn.com/) - مكتبة مكونات واجهة المستخدم
+- [API JSON Files القرآن الكريم]() - لجلب بيانات القرآن 
 
-To learn more about Next.js, take a look at the following resources:
+## متطلبات التشغيل 🚀
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Node.js (الإصدار 18.17.0 أو أحدث)
+- npm أو yarn أو pnpm
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## لمساهمة في المشروع 🤝
 
-## Deploy on Vercel
+نرحب بمساهماتكم في تطوير هذا المشروع! إليكم بعض الطرق التي يمكنكم المساهمة بها:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. 🐛 الإبلاغ عن الأخطاء
+2. 💡 اقتراح ميزات جديدة
+3. 🔧 إصلاح الأخطاء البرمجية
+4. 📝 تحسين التوثيق
+5. 🌐 إضافة الترجمات
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### خطوات المساهمة:
+
+1. قم بعمل Fork للمشروع
+2. أنشئ فرعًا جديدًا (`git checkout -b feature/amazing-feature`)
+3. قم بإجراء تغييراتك وإضافتها (`git add .`)
+4. قم بتثبيت التغييرات (`git commit -m 'إضافة ميزة رائعة'`)
+5. ادفع التغييرات إلى الفرع (`git push origin feature/amazing-feature`)
+6. افتح طلب سحب (Pull Request)
+
+## شكر خاص 🙏
+
+- شكر جزيل لـ [API القرآن الكريم](https://alquran.cloud/api)
+
+
+    <div align="center">
+    تم تطويره بكل ❤️ لخدمة كتاب الله العزيز
+    </div>
+</div>
