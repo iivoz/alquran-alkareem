@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -14,17 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  PlayCircle,
-  PauseCircle,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { PlayCircle, PauseCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Surah, Translation, Verse } from "@/types/quran";
 import { qariOptions } from "@/types/qariOptions";
 import { ModeToggle } from "@/components/ModeToggle";
+import debounce from "lodash.debounce";
+import React from "react";
 
-export default function EnhancedQuranReader() {
+const EnhancedQuranReader = () => {
   const [surahs, setSurahs] = useState<Surah[]>([]);
   const [currentSurah, setCurrentSurah] = useState<Surah | null>(null);
   const [verses, setVerses] = useState<Verse | null>(null);
@@ -33,99 +30,141 @@ export default function EnhancedQuranReader() {
   const [fontSize, setFontSize] = useState<number>(24);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(
-    null
-  );
-  const [showSideNav, setShowSideNav] = useState<boolean>(true);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+  const [showSideNav, setShowSideNav] = useState<boolean>(false);
   const [qari, setQari] = useState<string>("ar.alafasy");
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const versesPerPage = 10;
 
-  useEffect(() => {
-    fetch("/api/surahs")
-      .then((res) => res.json())
-      .then((data) => {
-        setSurahs(data);
-        setCurrentSurah(data[0]);
-      });
+  const fetchSurahs = useCallback(async () => {
+    try {
+      const res = await fetch("/api/surahs");
+      if (!res.ok) throw new Error("Failed to fetch surahs");
+      const data = await res.json();
+      setSurahs(data);
+      setCurrentSurah(data[0]);
+    } catch (err) {
+      console.error("Error fetching surahs:", err);
+    }
+  }, []);
+
+  const fetchVerses = useCallback(async (surahIndex: string) => {
+    try {
+      setIsLoading(true);
+      const [versesRes, translationRes] = await Promise.all([
+        fetch(`/api/surah/${surahIndex}`),
+        fetch(`/api/translation/ar/${surahIndex}`),
+      ]);
+
+      if (!versesRes.ok || !translationRes.ok) {
+        throw new Error("Failed to fetch data");
+      }
+
+      const [versesData, translationData] = await Promise.all([
+        versesRes.json(),
+        translationRes.json(),
+      ]);
+
+      setVerses(versesData.verse);
+      setTranslation(translationData);
+    } catch (err) {
+      console.error("Error fetching verses:", err);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
+    fetchSurahs();
+  }, [fetchSurahs]);
+
+  useEffect(() => {
     if (currentSurah) {
-      fetch(`/api/surah/${currentSurah.index}`)
-        .then((res) => res.json())
-        .then((data) => setVerses(data.verse));
-
-      fetch(`/api/translation/ar/${currentSurah.index}`)
-        .then((res) => res.json())
-        .then((data) => setTranslation(data));
-
+      fetchVerses(currentSurah.index);
       setCurrentPage(1);
     }
-  }, [currentSurah]);
+  }, [currentSurah, fetchVerses]);
 
   const handleSurahChange = (index: string) => {
     const surah = surahs.find((s) => s.index === index);
     if (surah) setCurrentSurah(surah);
+    setShowSideNav(false);
   };
 
-  const filteredVerses = verses
-    ? Object.entries(verses).filter(
-        ([key, verse]) =>
-          verse.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (translation &&
-            translation?.verse[key]
-              ?.toLowerCase()
-              .includes(searchTerm.toLowerCase()))
-      )
-    : [];
-
-  const paginatedVerses = filteredVerses.slice(
-    (currentPage - 1) * versesPerPage,
-    currentPage * versesPerPage
+  const debouncedSearchTerm = useMemo(
+    () => debounce((term) => setSearchTerm(term), 300),
+    []
   );
 
-  const totalPages = Math.ceil(filteredVerses.length / versesPerPage);
-
-  const playAudio = (src: string) => {
-    if (currentAudio) {
-      currentAudio.pause();
-    }
-  
-    try {
-      const audio = new Audio(src);
-      audio.play();
-      setCurrentAudio(audio);
-      setIsPlaying(true);
-      audio.onended = () => setIsPlaying(false);
-    } catch  {
-      throw new Error('حصل خطأ')
-    }
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    debouncedSearchTerm(e.target.value);
   };
 
-  const toggleAudio = (src: string) => {
-    if (currentAudio && isPlaying) {
-      currentAudio.pause();
-      setIsPlaying(false);
-    } else {
-      playAudio(src);
-    }
-  };
+  const filteredVerses = useMemo(() => {
+    return verses
+      ? Object.entries(verses).filter(
+          ([key, verse]) =>
+            verse.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (translation &&
+              translation.verse[key]
+                ?.toLowerCase()
+                .includes(searchTerm.toLowerCase()))
+        )
+      : [];
+  }, [verses, translation, searchTerm]);
+
+  const paginatedVerses = useMemo(() => {
+    return filteredVerses.slice(
+      (currentPage - 1) * versesPerPage,
+      currentPage * versesPerPage
+    );
+  }, [filteredVerses, currentPage, versesPerPage]);
+
+  const totalPages = useMemo(() => {
+    return Math.ceil(filteredVerses.length / versesPerPage);
+  }, [filteredVerses.length, versesPerPage]);
+
+  const playAudio = useCallback(
+    (src: string) => {
+      if (currentAudio) currentAudio.pause();
+      try {
+        const audio = new Audio(src);
+        audio.play();
+        setCurrentAudio(audio);
+        setIsPlaying(true);
+        audio.onended = () => setIsPlaying(false);
+      } catch {
+        console.error("Error playing audio");
+      }
+    },
+    [currentAudio]
+  );
+
+  const toggleAudio = useCallback(
+    (src: string) => {
+      if (currentAudio && isPlaying) {
+        currentAudio.pause();
+        setIsPlaying(false);
+      } else {
+        playAudio(src);
+      }
+    },
+    [currentAudio, isPlaying, playAudio]
+  );
 
   return (
-    <div className="min-h-screen dark:bg-gray-900 dark:text-white bg-white text-gray-900">
-      <div className="container mx-auto p-4 flex gap-x-4">
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="container mx-auto p-4 flex gap-4">
         {showSideNav && (
-          <div className="w-1/4 pr-4">
+          <div className="block flex-grow w-1/2 lg:w-1/4 pr-4">
             <ScrollArea className="h-[calc(100vh-2rem)]">
               <div className="space-y-2">
                 {surahs.map((surah) => (
                   <Button
                     key={surah.index}
                     variant={
-                      currentSurah?.index === surah.index
-                        ? "secondary"
-                        : "ghost"
+                      currentSurah?.index === surah.index ? "secondary" : "ghost"
                     }
                     className="w-full justify-start"
                     onClick={() => handleSurahChange(surah.index)}
@@ -137,40 +176,32 @@ export default function EnhancedQuranReader() {
             </ScrollArea>
           </div>
         )}
-        <div className={`${showSideNav ? "w-3/4" : "w-full"}`}>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setShowSideNav(!showSideNav)}
+          aria-label={showSideNav ? "Hide sidebar" : "Show sidebar"}
+        >
+          {showSideNav ? <ChevronRight /> : <ChevronLeft />}
+        </Button>
+        <div className={`${showSideNav ? "w-3/4 hidden" : "w-full"} flex-grow`}>
           <div className="flex justify-between items-center mb-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setShowSideNav(!showSideNav)}
-            >
-              {showSideNav ? (
-                <ChevronRight className="h-4 w-4" />
-              ) : (
-                <ChevronLeft className="h-4 w-4" />
-              )}
-            </Button>
-            <h1 className="text-3xl font-bold">قارئ القرآن الكريم</h1>
-            <div className="flex gap-x-2">
-              <ModeToggle />
-            </div>
+            <h1 className="text-2xl font-bold">قارئ القرآن الكريم</h1>
+            <ModeToggle />
           </div>
-          <div className="flex flex-nowrap gap-4 mb-4">
+          <div className="flex gap-4 mb-4">
             <Input
               type="text"
               placeholder="بحث ايات..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearchChange}
               className="flex-grow"
+              aria-label="Search verses"
             />
-
             <Select value={qari} onValueChange={setQari}>
-              <SelectTrigger className="">
+              <SelectTrigger aria-label="Select reciter">
                 <SelectValue placeholder="اختر القارئ" />
               </SelectTrigger>
-
               <SelectContent>
-                {" "}
                 {qariOptions.map((option) => (
                   <SelectItem key={option.identifier} value={option.identifier}>
                     {option.name} | {option.language}
@@ -179,7 +210,7 @@ export default function EnhancedQuranReader() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center gap-x-2 mb-4">
+          <div className="flex items-center gap-4 mb-4">
             <span>حجم الخط:</span>
             <Slider
               min={12}
@@ -187,80 +218,62 @@ export default function EnhancedQuranReader() {
               step={1}
               value={[fontSize]}
               onValueChange={(value) => setFontSize(value[0])}
-              className="w-48 h-12"
+              aria-label="Font size"
             />
           </div>
-          {currentSurah && verses && translation && (
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <span className="ml-4">جاري التحميل...</span>
+            </div>
+          ) : currentSurah && verses && translation ? (
             <Card>
               <CardHeader>
-                <CardTitle className="flex justify-between items-center">
-                  <h4 className="flex items-center gap-x-2">
-                    <span>
-                      {currentSurah.title} ({currentSurah.titleAr})
-                    </span>
+                <CardTitle>
+                  <h2 className="flex items-center gap-4">
+                    {currentSurah.title} ({currentSurah.titleAr})
                     <Button
-                      variant="default" 
-                      size="default"
+                      variant="default"
                       onClick={() =>
                         toggleAudio(
-                          `https://cdn.islamic.network/quran/audio-surah/128/${qari}/${parseInt(
-                            currentSurah.index,
-                            10
-                          )}.mp3`
+                          `https://cdn.islamic.network/quran/audio-surah/128/${qari}/${currentSurah.index}.mp3`
                         )
                       }
+                      aria-label={isPlaying ? "Pause recitation" : "Play recitation"}
                     >
-                      {isPlaying &&
-                      currentAudio?.src.includes(
-                        `${parseInt(currentSurah.index, 10)}`
-                      ) ? (
-                        <PauseCircle className="h-5 w-5" />
-                      ) : (
-                        <PlayCircle className="h-5 w-5" />
-                      )}
+                      {isPlaying ? <PauseCircle /> : <PlayCircle />}
                     </Button>
-                  </h4>
-                  <span className="text-sm font-normal">
-                    {currentSurah.type} • {currentSurah.count} الآيات • الصفحة
-                    في القرآن {currentSurah.pages}
+                  </h2>
+                  <span className="text-sm">
+                    {currentSurah.type} • {currentSurah.count} آيات
                   </span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="verses">
                   <TabsList>
-                    <TabsTrigger value="info">تفاصيل السورة</TabsTrigger>
                     <TabsTrigger value="verses">الآيات</TabsTrigger>
+                    <TabsTrigger value="info">تفاصيل السورة</TabsTrigger>
                   </TabsList>
-                  <TabsContent className="mb-4" value="verses">
+                  <TabsContent value="verses">
                     {paginatedVerses.map(([key, verse]) => (
-                      <div key={key} className="mb-6 pb-4 border-b">
-                      
-                        <p
-                          className="text-xl mb-2"
-                          style={{ fontSize: `${fontSize}px` }}
-                          dir="rtl"
-                        >
-                          <span className="font-bold inline-flex items-center text-sm mx-1 gap-x-2">
-                            [{key.split("_")[1]}
-                             ۞]
-                          </span>
-                          {verse}
+                      <div key={key} className="mb-4">
+                        <p style={{ fontSize }} dir="rtl">
+                          <strong>[{key.split("_")[1]}]</strong> {verse}
                         </p>
                         <p
-                          className="inline-flex p-2 text-xs italic bg-yellow-50 dark:bg-yellow-900/50 leading-relaxed"
-                          style={{ fontSize: `${fontSize - 6}px` }}
+                          className="mt-4 inline-flex p-2 text-xs italic bg-muted/50 leading-relaxed"
+                          style={{ fontSize: fontSize - 6 }}
                         >
                           {translation.verse[key]}
                         </p>
                       </div>
                     ))}
-                    <div className="flex justify-between items-center mt-4">
+                    <div className="flex justify-between mt-4">
                       <Button
-                        onClick={() =>
-                          setCurrentPage((prev) => Math.max(prev - 1, 1))
-                        }
                         disabled={currentPage === 1}
+                        onClick={() => setCurrentPage((p) => p - 1)}
+                        aria-label="Previous page"
                       >
                         السابق
                       </Button>
@@ -268,48 +281,27 @@ export default function EnhancedQuranReader() {
                         الصفحة {currentPage} من {totalPages}
                       </span>
                       <Button
-                        onClick={() =>
-                          setCurrentPage((prev) =>
-                            Math.min(prev + 1, totalPages)
-                          )
-                        }
                         disabled={currentPage === totalPages}
+                        onClick={() => setCurrentPage((p) => p + 1)}
+                        aria-label="Next page"
                       >
                         التالي
                       </Button>
                     </div>
                   </TabsContent>
                   <TabsContent value="info">
-                    <div className="space-y-2">
-                      <p>
-                        <strong>مكان النزول:</strong> {currentSurah.place}
-                      </p>
-                      <p>
-                        <strong>النوع:</strong> {currentSurah.type}
-                      </p>
-                      <p>
-                        <strong>عدد الآيات:</strong> {currentSurah.count}
-                      </p>
-                      <p>
-                        <strong>الاجزاء:</strong>
-                      </p>
-                      <ul className="list-disc list-inside">
-                        {currentSurah.juz.map((juz) => (
-                          <li key={juz.index}>
-                            جزء {juz.index}: الآيات{" "}
-                            {juz.verse.start.split("_")[1]} -{" "}
-                            {juz.verse.end.split("_")[1]}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                    <p><strong>مكان النزول:</strong> {currentSurah.place}</p>
                   </TabsContent>
                 </Tabs>
               </CardContent>
             </Card>
+          ) : (
+            <p>لا توجد بيانات لعرضها.</p>
           )}
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default React.memo(EnhancedQuranReader);
