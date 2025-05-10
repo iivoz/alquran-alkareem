@@ -31,18 +31,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="bg-gradient-to-r from-blue-600 dark:to-primary-foreground to-primary text-white p-4 shadow-md">
           <div className="container mx-auto flex flex-col sm:flex-row items-center justify-between">
             <div className="flex items-center mb-4 sm:mb-0">
-              <span className="text-lg font-semibold">هذا المشروع متاح للمساهمة</span>
+              <span className="text-lg font-semibold"> الدال على الخير كفاعله | انشر الموقع</span>
             </div>
             <Button variant="secondary" size="sm" className="transition-colors duration-200">
               <Github className="mr-2 h-4 w-4" />
               <a
-                href="https://github.com/SaifSaidi/alquran-alkareem"
+                href="https://t.me/iivoz"
                 target="_blank"
                 rel="noopener noreferrer"
-                title="github"
+                title="Telegram"
                 className="flex items-center"
               >
-                ساهم على GitHub
+                Telegram
               </a>
             </Button>
           </div>
